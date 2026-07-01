@@ -34,6 +34,8 @@
     statusMessage:     $('status-message'),
   };
 
+  let statusTimeout = null;
+
   // --- Utilities ---
 
   /**
@@ -43,11 +45,16 @@
    * @param {number} [duration] - auto-hide after ms (0 = permanent)
    */
   function showStatus(text, type, duration) {
+    if (statusTimeout) {
+      clearTimeout(statusTimeout);
+      statusTimeout = null;
+    }
     els.statusMessage.textContent = text;
     els.statusMessage.className = 'status ' + type;
     if (duration && duration > 0) {
-      setTimeout(function () {
+      statusTimeout = setTimeout(function () {
         els.statusMessage.classList.add('hidden');
+        statusTimeout = null;
       }, duration);
     }
   }
