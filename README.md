@@ -1,123 +1,107 @@
-# VisualStealthLab
+# 🔮 VisualStealthLab — 视觉隐写实验室
 
-A browser-based **LSB (Least Significant Bit) steganography** tool with
-repeating-key XOR encryption, a live particle system background, and hidden
-easter eggs. Hide secret messages inside images — invisible to the naked
-eye, recoverable only with the correct password.
+> **在线体验**: [https://hatsume0202.github.io/VisualStealthLab/](https://hatsume0202.github.io/VisualStealthLab/)
 
-## Features
+一个基于浏览器的 **LSB（最低有效位）图片隐写**工具，集成了炫酷的 Canvas 粒子交互背景、XOR 加密和隐藏彩蛋系统。将秘密信息隐藏在图片中——肉眼不可见，只有使用正确密码才能提取。
 
-- **LSB Steganography** — Embeds data in the least significant bits of
-  image pixels (R, G, B channels). The visual difference is imperceptible.
-- **Repeating-Key XOR Encryption** — Messages are XOR-encrypted with the
-  user's password before embedding. Without the correct password, extracted
-  data is meaningless.
-- **Particle System Background** — 120+ particles drift across the
-  screen, connected by proximity lines, reacting to mouse movement.
-- **Hidden Easter Egg** — Try the Konami code (↑ ↑ ↓ ↓ ← → ← → B A) …
-- **Zero Dependencies** — Pure HTML, CSS, and JavaScript. No frameworks,
-  no build tools. Just open `index.html` in a browser.
-- **Unicode Support** — Full UTF-8 encoding via `TextEncoder`/`TextDecoder`.
-  Hide text in any language, including emoji.
+## ✨ 功能特性
 
-## How to Use
+- **🎨 Canvas 粒子交互背景** — 150+ 粒子漂移，鼠标引力吸引，近距离粒子自动连线。支持深色/浅色模式切换
+- **🔒 LSB 图片隐写** — 将文本信息嵌入图片像素 R、G、B 通道的最低有效位，视觉差异不可察觉
+- **🔑 XOR 加密** — 使用重复密钥 XOR 对消息加密后嵌入，无密码无法提取
+- **🥚 粒子彩蛋** — 输入密码 `visualstealth` 触发金色粒子爆发和发光文字动画
+- **📦 零依赖** — 纯 HTML/CSS/JavaScript 实现，无需框架，无需构建工具，直接打开 index.html 即可运行
+- **🌍 Unicode 支持** — 完整 UTF-8 编码，支持隐藏任意语言文本和 Emoji
+- **📱 响应式设计** — 玻璃态现代 UI，适配桌面和移动端
 
-### Encode (Hide a Message)
+## 🚀 使用方法
 
-1. Open `index.html` in a modern browser.
-2. Stay on the **Encode** tab.
-3. Enter a **password** — this encrypts your message.
-4. Select a **cover image** (PNG, JPEG, or BMP).
-5. Type your **secret message** in the text area.
-6. Click **Encode & Download** — the stego image is saved as a PNG.
+### 🔒 隐藏信息（编码）
 
-The resulting image looks identical to the original but carries your
-hidden message.
+1. 打开 `index.html`（或访问在线地址）
+2. 在「🔒 隐藏信息」标签页中：
+3. 输入**密码**（可选，用于加密消息）
+4. 上传一张**载体图片**（PNG/JPEG/BMP）
+5. 输入要隐藏的**秘密文本**
+6. 点击 **Encode & Download** — 隐写图片自动下载
 
-### Decode (Extract a Message)
+生成的图片看起来与原图完全相同，但携带了隐藏信息。
 
-1. Switch to the **Decode** tab.
-2. Enter the **same password** used during encoding.
-3. Select the **stego image** (must be PNG or BMP — JPEG recompression
-   destroys LSB data).
-4. Click **Decode** — the hidden message appears.
+### 🔓 提取信息（解码）
 
-**Important:** Decoding requires a **lossless** image format (PNG, BMP).
-JPEG compression will corrupt the hidden data.
+1. 切换到「🔓 提取信息」标签页
+2. 输入**相同的密码**（编码时设置过的话）
+3. 上传**隐写图片**（必须是 PNG/BMP — JPEG 压缩会破坏 LSB 数据）
+4. 点击 **Decode** — 隐藏的消息出现
+5. 可点击复制按钮复制提取的文本
 
-## Technical Details
+### 🥚 触发彩蛋
 
-### Encoding Algorithm
+在页面任意位置（非输入框）输入 `visualstealth`（不区分大小写），粒子效果将变为金色主题，屏幕中央出现发光文字！
 
-1. Convert the plaintext message to UTF-8 bytes.
-2. Apply **repeating-key XOR**: each message byte is XOR'd with the
-   corresponding password byte (password cycles: `key[i % key.length]`).
-3. Append a `0x00` byte (also XOR-encrypted) as the end-of-message marker.
-4. Convert encrypted bytes to a bit stream (MSB first per byte).
-5. Replace the LSB of each R, G, B channel (skipping Alpha) in sequential
-   pixels with the message bits.
+## 🔬 技术原理
 
-### Decoding Algorithm
+### 编码算法
 
-1. Extract LSBs from R, G, B channels sequentially to reconstruct a bit
-   stream.
-2. Group bits into bytes (8 bits each, MSB first).
-3. Apply XOR decryption to each byte with the repeating password key.
-4. Stop when a decrypted byte equals `0x00` (the terminator).
-5. Convert all bytes before the terminator back to a UTF-8 string.
+1. 将明文消息转换为 UTF-8 字节
+2. 应用**重复密钥 XOR**加密：每字节与密码对应字节 XOR（密码循环：`key[i % key.length]`）
+3. 追加 `0x00` 字节作为结束标记（同样 XOR 加密）
+4. 将加密字节转换为比特流（每字节 MSB 优先）
+5. 按顺序替换每个像素 R、G、B 通道的 LSB（跳过 Alpha 通道）
 
-### Capacity
+### 解码算法
+
+1. 按顺序从 R、G、B 通道提取 LSB 重建比特流
+2. 将比特分组为字节（每 8 位，MSB 优先）
+3. 使用重复密钥 XOR 解密每个字节
+4. 检测到 `0x00`（结束标记）时停止
+5. 将结束标记前的字节转换回 UTF-8 字符串
+
+### 容量计算
 
 ```
-capacity_bytes = floor((width × height × 3) / 8) - 1
+容量(字节) = floor((宽 × 高 × 3) / 8) - 1
 ```
 
-The `-1` accounts for the terminator byte. Each pixel provides 3 bits
-(R, G, B). A 1000×1000 image can hold ~374,999 bytes (≈366 KB).
+`-1` 为结束标记预留。每像素提供 3 比特。一张 1000×1000 的图片可存储约 **366 KB** 的隐藏信息。
 
-### Why Repeating-Key XOR?
+### XOR 加密原理
 
-- XOR is its own inverse: `encode(x, key) → decode(result, key) = x`.
-- The `0x00` terminator, after XOR with the key byte at that position,
-  becomes the key byte itself — but decryption XORs it back to `0x00`,
-  so the terminator is always detectable with the correct key.
-- Simple, deterministic, no external crypto dependencies.
+- XOR 是自身的逆运算：`encode(x, key) → decode(result, key) = x`
+- 无密码时：消息明文嵌入，任何人可提取
+- 有密码时：嵌入的是密文，错误密码提取出乱码
+- `0x00` 结束标记经 XOR 后变为密钥字节本身，解密时 XOR 回 `0x00`，确保标记始终可检测
 
-## Browser Compatibility
-
-Works in all modern browsers:
-- Chrome 80+
-- Firefox 75+
-- Safari 13+
-- Edge 80+
-
-Requires `TextEncoder`/`TextDecoder` APIs (available in all modern
-browsers) and Canvas API support.
-
-## Project Structure
+## 📁 项目结构
 
 ```
 VisualStealthLab/
-├── index.html              # Main application HTML
+├── index.html              # 主入口 HTML
 ├── css/
-│   └── style.css           # All styles
+│   └── style.css           # 全局样式（玻璃态、CSS变量、响应式）
 ├── js/
-│   ├── particles.js        # Canvas particle system
-│   ├── steganography.js    # LSB steganography core
-│   ├── easteregg.js        # Konami code easter egg
-│   └── main.js             # Main controller & UI logic
+│   ├── particles.js        # Canvas 粒子系统（引力、连线、爆发、配色切换）
+│   ├── steganography.js    # LSB 隐写核心（编码/解码/XOR加密）
+│   ├── easteregg.js        # 彩蛋系统（密码检测、金色粒子效果）
+│   └── main.js             # 主控制器（UI交互、主题切换、Toast通知）
 ├── tests/
-│   └── integration.html    # Integration test suite
-└── README.md               # This file
+│   └── integration.html    # 集成测试页面
+└── README.md               # 本文件
 ```
 
-## Running Tests
+## 🌐 浏览器兼容性
 
-Open `tests/integration.html` in a browser. Tests run automatically on
-page load (after a 500ms delay to ensure scripts are loaded). Results
-appear on the page and in the browser console.
+| 浏览器 | 最低版本 |
+|--------|----------|
+| Chrome | 80+ |
+| Firefox | 75+ |
+| Safari | 13+ |
+| Edge | 80+ |
+
+## 🧪 运行测试
+
+在浏览器中打开 `tests/integration.html`，测试会在页面加载后自动运行（延迟 500ms 确保脚本加载完成）。结果会显示在页面上和浏览器控制台中。
 
 ---
 
-*"In a world of plain sight, the hidden truth travels in the least
-significant places."*
+*"每张图片都讲述着两个故事。一个在表面，一个在噪声之下。"*
