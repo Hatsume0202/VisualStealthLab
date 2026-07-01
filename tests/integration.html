@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VisualStealthLab — Integration Tests</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #0f0; padding: 2rem; }
+    h1 { color: #0f0; }
+    .test { margin: 0.5rem 0; padding: 0.5rem; border-left: 3px solid #333; }
+    .test.pass { border-color: #0f0; }
+    .test.fail { border-color: #f00; color: #f00; }
+    .test.running { border-color: #ff0; color: #ff0; }
+    button { background: #0f0; color: #000; border: none; padding: 0.5rem 1rem; cursor: pointer; font-weight: bold; }
+    button:hover { background: #0c0; }
+  </style>
+</head>
+<body>
+  <h1>VisualStealthLab Integration Tests</h1>
+  <p>Open the browser console (F12) for detailed results.</p>
+  <button onclick="runAllTests()">Run All Tests</button>
+  <div id="results"></div>
+
+  <!-- Load all source files first, then the test script -->
+  <script src="../js/particles.js"></script>
+  <script src="../js/steganography.js"></script>
+  <script src="../js/easteregg.js"></script>
+  <script>
+    'use strict';
+
+    const resultsEl = document.getElementById('results');
+    let totalTests = 0;
+    let passedTests = 0;
+    let failedTests = 0;
+
+    function assert(condition, testName) {
+      totalTests++;
+      const div = document.createElement('div');
+      div.className = 'test running';
+      div.textContent = `RUNNING: ${testName}`;
+      resultsEl.appendChild(div);
+
+      if (condition) {
+        passedTests++;
+        div.className = 'test pass';
+        div.textContent = `✅ PASS: ${testName}`;
+      } else {
+        failedTests++;
+        div.className = 'test fail';
+        div.textContent = `❌ FAIL: ${testName}`;
+      }
+      console.log(condition ? `✅ ${testName}` : `❌ ${testName}`);
+    }
+
+    // Helper: create a simple test image (10x10 pixels)
+    function createTestImageData(width, height) {
+      const data = new Uint8ClampedArray(width * height * 4);
+      // Fill with a gradient-ish pattern
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = (i % 256);       // R
+        data[i + 1] = (i + 85) % 256; // G
+        data[i + 2] = (i + 170) % 256; // B
+        data[i + 3] = 255;         // A
+      }
+      return new ImageData(data, width, height);
+    }
+
+    async function runAllTests() {
+      resultsEl.innerHTML = '';
+      totalTests = 0;
+      passedTests = 0;
+      failedTests = 0;
+
+      console.log('=== VisualStealthLab Integration Tests ===');
+
+      // --- Test 1: Basic encode/decode round-trip ---
+      try {
+        const imgData = createTestImageData(100, 100);
+        const message = 'Hello, Steganography!';
+        const password = 'testkey';
+
+        const encoded = Steganography.encode(imgData, message, password);
+        assert(encoded.used === message.length, 'Round-trip: encode returns correct used bytes');
+
+        const decoded = Steganography.decode(encoded.imageData, password);
+        assert(decoded === message, `Round-trip: decoded message matches (got: "${decoded}")`);
+      } catch (e) {
+        assert(false, `Round-trip basic: ${e.message}`);
+      }
+
+      // --- Test 2: Empty password ---
+      try {
+        const imgData = createTestImageData(100, 100);
+        const message = 'No password test';
+        const password = '';
+
+        const encoded = Steganography.encode(imgData, message, password);
+        const decoded = Steganography.decode(encoded.imageData, password);
+        assert(decoded === message, 'Empty password: round-trip works');
+      } catch (e) {
+        assert(false, `Empty password: ${e.message}`);
+      }
+
+      // --- Test 3: Unicode message ---
+      try {
+        const imgData = createTestImageData(100, 100);
+        const message = '你好，世界！🚀✨';
+        const password = 'unicode🔑';
+
+        const encoded = Steganography.encode(imgData, message, password);
+        const decoded = Steganography.decode(encoded.imageData, password);
+        assert(decoded === message, 'Unicode: message survives round-trip');
+      } catch (e) {
+        assert(false, `Unicode: ${e.message}`);
+      }
+
+      // --- Test 4: Wrong password fails ---
+      try {
+        const imgData = createTestImageData(100, 100);
+        const message = 'Secret message';
+        const password = 'correct';
+
+        const encoded = Steganography.encode(imgData, message, password);
+        try {
+          Steganography.decode(encoded.imageData, 'wrong');
+          assert(false, 'Wrong password: should have thrown');
+        } catch (e) {
+          assert(true, 'Wrong password: correctly throws error');
+        }
+      } catch (e) {
+        assert(false, `Wrong password setup: ${e.message}`);
+      }
+
+      // --- Test 5: Empty message throws ---
+      try {
+        const imgData = createTestImageData(10, 10);
+        try {
+          Steganography.encode(imgData, '', 'key');
+          assert(false, 'Empty message: should have thrown');
+        } catch (e) {
+          assert(e.message === 'Message cannot be empty', 'Empty message: correctly throws');
+        }
+      } catch (e) {
+        assert(false, `Empty message test: ${e.message}`);
+      }
+
+      // --- Test 6: Message too large throws ---
+      try {
+        const imgData = createTestImageData(2, 2); // Only 2*2*3/8 = 1 byte capacity
+        try {
+          Steganography.encode(imgData, 'This is too long for a 2x2 image', 'key');
+          assert(false, 'Too large: should have thrown');
+        } catch (e) {
+          assert(e.message.includes('too large') || e.message.includes('Capacity'), 'Too large: correctly throws');
+        }
+      } catch (e) {
+        assert(false, `Too large test: ${e.message}`);
+      }
+
+      // --- Test 7: Decode on clean image fails ---
+      try {
+        const imgData = createTestImageData(100, 100);
+        try {
+          Steganography.decode(imgData, 'anykey');
+          assert(false, 'Clean image: should have thrown');
+        } catch (e) {
+          assert(true, 'Clean image: correctly throws');
+        }
+      } catch (e) {
+        assert(false, `Clean image test: ${e.message}`);
+      }
+
+      // --- Test 8: Capacity calculation ---
+      try {
+        const cap = Steganography.getCapacity(100, 100);
+        const expected = Math.floor((100 * 100 * 3) / 8) - 1;
+        assert(cap === expected, `Capacity: ${cap} bytes (expected ${expected})`);
+      } catch (e) {
+        assert(false, `Capacity test: ${e.message}`);
+      }
+
+      // --- Test 9: ParticleSystem instantiation ---
+      try {
+        // Create a temporary canvas for testing
+        const testCanvas = document.createElement('canvas');
+        testCanvas.id = 'test-particles';
+        document.body.appendChild(testCanvas);
+
+        const ps = new ParticleSystem('test-particles');
+        assert(ps instanceof ParticleSystem, 'ParticleSystem: instantiation works');
+        assert(typeof ps.start === 'function', 'ParticleSystem: has start()');
+        assert(typeof ps.stop === 'function', 'ParticleSystem: has stop()');
+
+        ps.start();
+        assert(ps.running === true, 'ParticleSystem: start() sets running');
+        ps.stop();
+        assert(ps.running === false, 'ParticleSystem: stop() clears running');
+
+        document.body.removeChild(testCanvas);
+      } catch (e) {
+        assert(false, `ParticleSystem: ${e.message}`);
+      }
+
+      // --- Test 10: EasterEgg API ---
+      try {
+        assert(typeof EasterEgg === 'object', 'EasterEgg: object exists');
+        assert(typeof EasterEgg.init === 'function', 'EasterEgg: has init()');
+        assert(typeof EasterEgg.show === 'function', 'EasterEgg: has show()');
+        assert(typeof EasterEgg.hide === 'function', 'EasterEgg: has hide()');
+      } catch (e) {
+        assert(false, `EasterEgg API: ${e.message}`);
+      }
+
+      // --- Test 11: Non-ASCII password bytes ---
+      try {
+        const imgData = createTestImageData(100, 100);
+        const message = 'Test with funky password';
+        const password = 'pässwörd🔐';
+
+        const encoded = Steganography.encode(imgData, message, password);
+        const decoded = Steganography.decode(encoded.imageData, password);
+        assert(decoded === message, 'Non-ASCII password: round-trip works');
+      } catch (e) {
+        assert(false, `Non-ASCII password: ${e.message}`);
+      }
+
+      // --- Test 12: Long repeating message ---
+      try {
+        const imgData = createTestImageData(100, 100);
+        const message = 'A'.repeat(500);
+        const password = 'key';
+
+        const encoded = Steganography.encode(imgData, message, password);
+        const decoded = Steganography.decode(encoded.imageData, password);
+        assert(decoded === message, `Long message (${message.length} chars): round-trip works`);
+      } catch (e) {
+        assert(false, `Long message: ${e.message}`);
+      }
+
+      // --- Test 13: XOR is symmetric ---
+      try {
+        const imgData1 = createTestImageData(100, 100);
+        const imgData2 = createTestImageData(100, 100);
+        const message = 'Symmetry test';
+        const password = 'xor-test';
+
+        const encoded1 = Steganography.encode(imgData1, message, password);
+        const encoded2 = Steganography.encode(imgData2, message, password);
+        const decoded1 = Steganography.decode(encoded1.imageData, password);
+        const decoded2 = Steganography.decode(encoded2.imageData, password);
+        assert(decoded1 === decoded2, 'XOR symmetry: same input produces same output');
+      } catch (e) {
+        assert(false, `XOR symmetry: ${e.message}`);
+      }
+
+      // Summary
+      console.log(`=== Results: ${passedTests}/${totalTests} passed ===`);
+      const summary = document.createElement('div');
+      summary.style.marginTop = '1rem';
+      summary.style.fontWeight = 'bold';
+      summary.style.fontSize = '1.2rem';
+      if (failedTests === 0) {
+        summary.style.color = '#0f0';
+        summary.textContent = `All ${passedTests} tests passed! 🎉`;
+      } else {
+        summary.style.color = '#f00';
+        summary.textContent = `${passedTests}/${totalTests} passed, ${failedTests} failed`;
+      }
+      resultsEl.appendChild(summary);
+    }
+
+    // Auto-run on load
+    window.addEventListener('DOMContentLoaded', function () {
+      setTimeout(runAllTests, 500);
+    });
+  </script>
+</body>
+</html>
