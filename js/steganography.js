@@ -153,12 +153,18 @@
           const dataIdx = pixelIdx * 4 + channelOffset;
 
           if (dataIdx >= pixels.length) {
+            byteVal = -1; // Signal incomplete byte
             break;
           }
 
           const lsb = pixels[dataIdx] & 1; // Extract LSB
           byteVal = (byteVal << 1) | lsb;
           bitPos++;
+        }
+
+        // Skip incomplete bytes (should not happen under normal operation)
+        if (byteVal === -1) {
+          break;
         }
 
         // XOR decrypt this byte with the repeating key
@@ -193,7 +199,7 @@
      * @returns {number} usable bytes
      */
     getCapacity: function (width, height) {
-      return calculateCapacity(width, height) - 1;
+      return Math.max(0, calculateCapacity(width, height) - 1);
     },
   };
 

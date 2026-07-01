@@ -1,4 +1,42 @@
-/* === Reset & Base === */
+/* ================================================================
+   VisualStealthLab — Stylesheet
+   Glass-morphism design with CSS custom properties for theming.
+   ================================================================ */
+
+/* === CSS Custom Properties (Theming) === */
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-card: rgba(26, 26, 46, 0.8);
+  --bg-input: rgba(26, 26, 46, 0.9);
+  --text-primary: #e0e0e0;
+  --text-secondary: #aaa;
+  --text-muted: #666;
+  --accent: #6C63FF;
+  --accent-glow: rgba(108, 99, 255, 0.4);
+  --border: #333;
+  --success: #10b981;
+  --error: #ef4444;
+  --card-blur: 12px;
+  --transition-speed: 0.3s;
+}
+
+/* Light theme overrides */
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-input: rgba(255, 255, 255, 0.9);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent: #6C63FF;
+  --accent-glow: rgba(108, 99, 255, 0.3);
+  --border: #e2e8f0;
+  --card-blur: 16px;
+}
+
+/* ================================================================
+   1. Reset & Base
+   ================================================================ */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -7,13 +45,16 @@
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #0a0a0f;
-  color: #e0e0e0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background var(--transition-speed), color var(--transition-speed);
 }
 
-/* === Particle Canvas (full-screen background) === */
+/* ================================================================
+   2. Particle Canvas (full-screen background)
+   ================================================================ */
 #particle-canvas {
   position: fixed;
   top: 0;
@@ -23,7 +64,9 @@ body {
   z-index: 0;
 }
 
-/* === Easter Egg Overlay === */
+/* ================================================================
+   3. Easter Egg Overlay
+   ================================================================ */
 #easteregg-overlay {
   position: fixed;
   top: 0;
@@ -53,8 +96,8 @@ body {
 
 #easteregg-title {
   font-size: 3rem;
-  color: #00ff88;
-  text-shadow: 0 0 20px #00ff88;
+  color: var(--success);
+  text-shadow: 0 0 20px var(--success);
 }
 
 #easteregg-message {
@@ -63,7 +106,113 @@ body {
   margin-top: 1rem;
 }
 
-/* === App Container === */
+/* ================================================================
+   4. Theme Toggle Button
+   ================================================================ */
+#theme-toggle {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-speed),
+              border-color var(--transition-speed),
+              color var(--transition-speed);
+}
+
+#theme-toggle:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+#theme-toggle .theme-icon {
+  display: inline-block;
+  transition: transform 0.4s ease;
+}
+
+#theme-toggle.rotated .theme-icon {
+  transform: rotate(180deg);
+}
+
+/* ================================================================
+   5. Toast Container
+   ================================================================ */
+#toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+/* ================================================================
+   6. Individual Toast
+   ================================================================ */
+.toast {
+  pointer-events: auto;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  max-width: 380px;
+  min-width: 220px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: toast-slide-in 0.35s ease-out forwards;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast.removing {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+/* Left border color variants */
+.toast.success {
+  border-left: 4px solid var(--success);
+}
+
+.toast.error {
+  border-left: 4px solid var(--error);
+}
+
+.toast.info {
+  border-left: 4px solid var(--accent);
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ================================================================
+   7. App Container
+   ================================================================ */
 #app-container {
   position: relative;
   z-index: 1;
@@ -72,53 +221,71 @@ body {
   padding: 2rem 1.5rem;
 }
 
-/* === Header === */
+/* ================================================================
+   8. Header
+   ================================================================ */
 header {
   text-align: center;
   margin-bottom: 2rem;
+  padding-top: 1rem;
 }
 
 header h1 {
   font-size: 2.2rem;
-  color: #00ff88;
-  text-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+  color: var(--accent);
+  text-shadow: 0 0 15px var(--accent-glow);
   letter-spacing: 2px;
 }
 
 .subtitle {
-  color: #888;
+  color: var(--text-muted);
   font-size: 0.95rem;
   margin-top: 0.3rem;
 }
 
-/* === Tabs === */
+/* ================================================================
+   9. Tabs
+   ================================================================ */
 .tabs {
   display: flex;
   gap: 0;
   margin-bottom: 1.5rem;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--border);
+  padding: 4px;
 }
 
 .tab {
   flex: 1;
-  padding: 0.75rem 1rem;
-  background: #1a1a2e;
-  color: #aaa;
-  border: 1px solid #333;
+  padding: 0.7rem 1rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background 0.2s, color 0.2s;
+  font-size: 0.95rem;
+  border-radius: 7px;
+  transition: background 0.25s, color 0.25s, box-shadow 0.25s;
 }
 
 .tab.active {
-  background: #00ff88;
-  color: #0a0a0f;
-  border-color: #00ff88;
-  font-weight: bold;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 12px var(--accent-glow);
+  font-weight: 600;
 }
 
-/* === Form Elements === */
+.tab:hover:not(.active) {
+  color: var(--text-primary);
+  background: rgba(108, 99, 255, 0.1);
+}
+
+/* ================================================================
+   10. Form Elements
+   ================================================================ */
 .form-group {
   margin-bottom: 1.2rem;
 }
@@ -127,7 +294,7 @@ header h1 {
   display: block;
   margin-bottom: 0.4rem;
   font-size: 0.9rem;
-  color: #aaa;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -136,12 +303,21 @@ header h1 {
 .form-group textarea {
   width: 100%;
   padding: 0.7rem 0.9rem;
-  background: #1a1a2e;
-  border: 1px solid #333;
-  border-radius: 6px;
-  color: #e0e0e0;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
   font-size: 0.95rem;
   font-family: inherit;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.form-group input[type="file"]:focus,
+.form-group input[type="password"]:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .form-group textarea {
@@ -149,39 +325,70 @@ header h1 {
 }
 
 .form-group input[type="file"]::file-selector-button {
-  background: #2a2a4a;
-  color: #e0e0e0;
+  background: var(--accent);
+  color: #fff;
   border: none;
   padding: 0.4rem 0.8rem;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
   margin-right: 0.5rem;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.form-group input[type="file"]::file-selector-button:hover {
+  opacity: 0.85;
 }
 
 .hint {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--text-muted);
   margin-top: 0.3rem;
 }
 
-/* === Panels === */
+/* ================================================================
+   11. Character Count
+   ================================================================ */
+.char-count {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  text-align: right;
+}
+
+/* ================================================================
+   12. Panels
+   ================================================================ */
 .panel {
   display: none;
 }
 
 .panel.active {
   display: block;
+  animation: panel-fade-in 0.3s ease;
 }
 
-/* === Buttons === */
+@keyframes panel-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ================================================================
+   13. Buttons
+   ================================================================ */
 button {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
   font-weight: 600;
-  transition: background 0.2s, opacity 0.2s;
+  transition: background 0.25s, opacity 0.25s, box-shadow 0.25s, transform 0.15s;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 button:disabled {
@@ -192,22 +399,53 @@ button:disabled {
 #encode-button,
 #decode-button {
   width: 100%;
-  background: #00ff88;
-  color: #0a0a0f;
+  background: var(--accent);
+  color: #fff;
   margin-top: 0.5rem;
 }
 
 #encode-button:hover:not(:disabled),
 #decode-button:hover:not(:disabled) {
-  background: #00cc6a;
+  background: #5a52e0;
+  box-shadow: 0 0 16px var(--accent-glow);
 }
 
-/* === Preview & Result === */
+/* ================================================================
+   14. Copy Button
+   ================================================================ */
+.copy-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.copy-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.copy-btn.hidden {
+  display: none;
+}
+
+/* ================================================================
+   15. Preview & Result Areas
+   ================================================================ */
 .preview canvas {
   max-width: 100%;
-  border-radius: 6px;
+  border-radius: 8px;
   margin-top: 1rem;
-  border: 1px solid #333;
+  border: 1px solid var(--border);
 }
 
 .result {
@@ -215,15 +453,16 @@ button:disabled {
 }
 
 .result h3 {
-  color: #00ff88;
+  color: var(--accent);
   margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
 .result pre {
-  background: #1a1a2e;
+  background: var(--bg-input);
   padding: 1rem;
-  border-radius: 6px;
-  border: 1px solid #333;
+  border-radius: 8px;
+  border: 1px solid var(--border);
   white-space: pre-wrap;
   word-break: break-all;
   font-family: 'Courier New', monospace;
@@ -232,37 +471,116 @@ button:disabled {
   overflow-y: auto;
 }
 
-/* === Status / Error === */
+/* ================================================================
+   16. Status Messages
+   ================================================================ */
 .status {
   margin-top: 1rem;
   padding: 0.75rem 1rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   text-align: center;
+  transition: opacity 0.3s;
 }
 
 .status.error {
-  background: rgba(255, 50, 50, 0.15);
-  color: #ff5555;
-  border: 1px solid #ff5555;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--error);
+  border: 1px solid var(--error);
 }
 
 .status.success {
-  background: rgba(0, 255, 136, 0.1);
-  color: #00ff88;
-  border: 1px solid #00ff88;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.hidden {
+  display: none;
 }
 
 .status.hidden {
   display: none;
 }
 
-/* === Footer === */
+/* ================================================================
+   17. Drop Zone
+   ================================================================ */
+.drop-zone {
+  position: relative;
+  border-radius: 10px;
+  padding: 0.25rem;
+  transition: background 0.25s, box-shadow 0.25s, border-color 0.25s;
+  border: 2px dashed transparent;
+}
+
+.drop-zone.drag-over {
+  background: rgba(108, 99, 255, 0.08);
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow), inset 0 0 20px rgba(108, 99, 255, 0.05);
+}
+
+.drop-zone.drag-over label {
+  color: var(--accent);
+}
+
+/* ================================================================
+   18. Footer
+   ================================================================ */
 footer {
   text-align: center;
   margin-top: 3rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #222;
-  color: #555;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
   font-size: 0.8rem;
+}
+
+/* ================================================================
+   19. Responsive (max-width: 768px)
+   ================================================================ */
+@media (max-width: 768px) {
+  #app-container {
+    padding: 1rem;
+    max-width: 100%;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+  }
+
+  .tab {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.5rem;
+  }
+
+  #theme-toggle {
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+  }
+
+  #toast-container {
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+  }
+
+  .toast {
+    max-width: 100%;
+  }
+
+  button {
+    font-size: 0.95rem;
+  }
+
+  footer {
+    font-size: 0.7rem;
+  }
 }
