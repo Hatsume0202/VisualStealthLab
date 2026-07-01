@@ -1,19 +1,20 @@
 /**
  * VisualStealthLab — Main Controller
- * Initializes particles, easter eggs, and wires UI events.
+ * Initializes particles, easter eggs, theme, toasts, drag & drop,
+ * and wires all UI events.
  */
 (function () {
   'use strict';
 
   // --- State ---
-  let encodeImage = null;      // ImageData of loaded cover image
-  let decodeImage = null;      // ImageData of loaded stego image
-  let particleSystem = null;
+  var encodeImage = null;      // ImageData of loaded cover image
+  var decodeImage = null;      // ImageData of loaded stego image
+  var particleSystem = null;
 
   // --- DOM Elements ---
-  const $ = function (id) { return document.getElementById(id); };
+  var $ = function (id) { return document.getElementById(id); };
 
-  const els = {
+  var els = {
     encodePanel:       $('encode-panel'),
     decodePanel:       $('decode-panel'),
     tabEncode:         $('tab-encode'),
@@ -21,6 +22,7 @@
     passwordInput:     $('password-input'),
     encodeImageInput:  $('encode-image-input'),
     messageInput:      $('message-input'),
+    charCount:         $('char-count'),
     encodeCapacity:    $('encode-capacity'),
     encodeButton:      $('encode-button'),
     encodePreview:     $('encode-preview'),
@@ -29,17 +31,113 @@
     decodeButton:      $('decode-button'),
     decodeResult:      $('decode-result'),
     decodedMessage:    $('decoded-message'),
+    copyResult:        $('copy-result'),
     decodePreview:     $('decode-preview'),
     decodePreviewCanvas: $('decode-preview-canvas'),
     statusMessage:     $('status-message'),
+    themeToggle:       $('theme-toggle'),
+    themeIcon:         document.querySelector('#theme-toggle .theme-icon'),
+    toastContainer:    $('toast-container'),
   };
 
-  let statusTimeout = null;
+  var statusTimeout = null;
 
-  // --- Utilities ---
+  // ====================================================================
+  // A. Theme Toggle
+  // ====================================================================
 
   /**
-   * Show a status message to the user.
+   * Apply a theme to the document.
+   * @param {'dark'|'light'} theme
+   */
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    if (els.themeIcon) {
+      els.themeIcon.innerHTML = theme === 'light' ? '&#x2600;&#xFE0F;' : '&#x1F319;';
+    }
+    if (particleSystem && typeof particleSystem.setColorScheme === 'function') {
+      particleSystem.setColorScheme(theme);
+    }
+  }
+
+  function toggleTheme() {
+    var current = document.documentElement.getAttribute('data-theme') || 'dark';
+    var next = current === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+
+    // Animate the icon rotation
+    if (els.themeToggle) {
+      els.themeToggle.classList.add('rotated');
+      setTimeout(function () {
+        els.themeToggle.classList.remove('rotated');
+      }, 400);
+    }
+  }
+
+  function initTheme() {
+    // Check system preference
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var initialTheme = prefersDark ? 'dark' : 'light';
+    setTheme(initialTheme);
+
+    // Listen for system preference changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+      setTheme(e.matches ? 'dark' : 'light');
+    });
+
+    // Toggle button click
+    if (els.themeToggle) {
+      els.themeToggle.addEventListener('click', toggleTheme);
+    }
+  }
+
+  // ====================================================================
+  // B. Toast Notification System
+  // ====================================================================
+
+  /**
+   * Show a toast notification.
+   * @param {string} message - toast message text
+   * @param {'success'|'error'|'info'} type - toast type
+   * @param {number} [duration] - auto-remove after ms (default 3000)
+   */
+  function showToast(message, type, duration) {
+    var dur = duration || 3000;
+    var toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    toast.textContent = message;
+
+    els.toastContainer.appendChild(toast);
+
+    // Trigger removal after duration
+    var removeTimer = setTimeout(function () {
+      removeToast(toast);
+    }, dur);
+
+    // Allow click to dismiss early
+    toast.addEventListener('click', function () {
+      clearTimeout(removeTimer);
+      removeToast(toast);
+    });
+  }
+
+  function removeToast(toast) {
+    if (!toast || toast.classList.contains('removing')) return;
+    toast.classList.add('removing');
+    setTimeout(function () {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }
+
+  // ====================================================================
+  // Original showStatus — kept for persistent messages
+  // ====================================================================
+
+  /**
+   * Show persistent status message in the status bar.
+   * Prefer showToast() for transient notifications.
    * @param {string} text - message text
    * @param {'error'|'success'} type - message type
    * @param {number} [duration] - auto-hide after ms (0 = permanent)
@@ -63,6 +161,118 @@
     els.statusMessage.classList.add('hidden');
   }
 
+  // ====================================================================
+  // C. Drag & Drop
+  // ====================================================================
+
+  function initDragDrop() {
+    var dropZones = document.querySelectorAll('.drop-zone');
+
+    dropZones.forEach(function (zone) {
+      // Prevent default to allow drop
+      zone.addEventListener('dragenter', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.add('drag-over');
+      });
+
+      zone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.add('drag-over');
+      });
+
+      zone.addEventListener('dragleave', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Only remove if we're actually leaving the zone (not entering a child)
+        if (!zone.contains(e.relatedTarget)) {
+          zone.classList.remove('drag-over');
+        }
+      });
+
+      zone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.remove('drag-over');
+
+        var files = e.dataTransfer.files;
+        if (files.length === 0) return;
+
+        var file = files[0];
+        var targetId = zone.getAttribute('data-drop-target');
+        var targetInput = document.getElementById(targetId);
+
+        if (!targetInput) return;
+
+        // Assign the file to the input and trigger change
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        targetInput.files = dt.files;
+        targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+
+    // Also prevent default drops on the whole document to avoid browser opening the file
+    document.addEventListener('dragover', function (e) {
+      e.preventDefault();
+    });
+    document.addEventListener('drop', function (e) {
+      e.preventDefault();
+    });
+  }
+
+  // ====================================================================
+  // D. Character Count
+  // ====================================================================
+
+  function updateCharCount() {
+    var len = els.messageInput.value.length;
+    els.charCount.textContent = len + ' 字符';
+  }
+
+  // ====================================================================
+  // E. Copy Button
+  // ====================================================================
+
+  function initCopyButton() {
+    els.copyResult.addEventListener('click', function () {
+      var text = els.decodedMessage.textContent;
+      if (!text) return;
+
+      navigator.clipboard.writeText(text).then(function () {
+        els.copyResult.innerHTML = '&#x2705; 已复制';
+        showToast('已复制到剪贴板', 'success', 2000);
+        setTimeout(function () {
+          els.copyResult.innerHTML = '&#x1F4CB; 复制';
+        }, 2000);
+      }).catch(function () {
+        // Fallback for older browsers
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          els.copyResult.innerHTML = '&#x2705; 已复制';
+          showToast('已复制到剪贴板', 'success', 2000);
+          setTimeout(function () {
+            els.copyResult.innerHTML = '&#x1F4CB; 复制';
+          }, 2000);
+        } catch (err) {
+          showToast('复制失败，请手动选择文本', 'error', 3000);
+        }
+        document.body.removeChild(textarea);
+      });
+    });
+  }
+
+  // ====================================================================
+  // Image Utilities
+  // ====================================================================
+
   /**
    * Load an image file and return its ImageData via canvas.
    * @param {File} file - image file from input
@@ -71,33 +281,33 @@
   function loadImageData(file) {
     return new Promise(function (resolve, reject) {
       if (!file || !file.type.match(/^image\/(png|jpeg|bmp)/)) {
-        reject(new Error('Please select a valid image file (PNG, JPEG, or BMP).'));
+        reject(new Error('请选择有效的图像文件 (PNG, JPEG, or BMP).'));
         return;
       }
 
-      const reader = new FileReader();
+      var reader = new FileReader();
       reader.onload = function (e) {
-        const img = new Image();
+        var img = new Image();
         img.onload = function () {
-          const canvas = document.createElement('canvas');
+          var canvas = document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
+          var ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
           try {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             resolve({ imageData: imageData, img: img });
           } catch (err) {
-            reject(new Error('Failed to read image data. The image may be tainted.'));
+            reject(new Error('无法读取图像数据，可能被污染。'));
           }
         };
         img.onerror = function () {
-          reject(new Error('Failed to load image. The file may be corrupted.'));
+          reject(new Error('无法加载图像，文件可能已损坏。'));
         };
         img.src = e.target.result;
       };
       reader.onerror = function () {
-        reject(new Error('Failed to read file.'));
+        reject(new Error('文件读取失败。'));
       };
       reader.readAsDataURL(file);
     });
@@ -111,7 +321,7 @@
   function showPreview(canvas, imageData) {
     canvas.width = imageData.width;
     canvas.height = imageData.height;
-    const ctx = canvas.getContext('2d');
+    var ctx = canvas.getContext('2d');
     ctx.putImageData(imageData, 0, 0);
   }
 
@@ -121,15 +331,15 @@
    * @param {string} filename
    */
   function downloadImageData(imageData, filename) {
-    const canvas = document.createElement('canvas');
+    var canvas = document.createElement('canvas');
     canvas.width = imageData.width;
     canvas.height = imageData.height;
-    const ctx = canvas.getContext('2d');
+    var ctx = canvas.getContext('2d');
     ctx.putImageData(imageData, 0, 0);
 
     canvas.toBlob(function (blob) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
@@ -139,7 +349,9 @@
     }, 'image/png');
   }
 
-  // --- Tab Switching ---
+  // ====================================================================
+  // Tab Switching
+  // ====================================================================
 
   function switchTab(tab) {
     if (tab === 'encode') {
@@ -156,11 +368,13 @@
     hideStatus();
   }
 
-  // --- Encode Handlers ---
+  // ====================================================================
+  // Encode Handlers
+  // ====================================================================
 
   function onEncodeImageSelected(e) {
     hideStatus();
-    const file = e.target.files[0];
+    var file = e.target.files[0];
     if (!file) return;
 
     loadImageData(file).then(function (result) {
@@ -169,15 +383,15 @@
       els.encodePreview.classList.remove('hidden');
 
       // Show capacity
-      const cap = Steganography.getCapacity(encodeImage.width, encodeImage.height);
+      var cap = Steganography.getCapacity(encodeImage.width, encodeImage.height);
       els.encodeCapacity.textContent =
-        'Image capacity: ' + cap.toLocaleString() + ' bytes' +
-        ' (' + encodeImage.width + '×' + encodeImage.height + ' pixels)';
-      els.encodeCapacity.style.color = '#888';
+        '图像容量: ' + cap.toLocaleString() + ' bytes' +
+        ' (' + encodeImage.width + '×' + encodeImage.height + ' 像素)';
+      els.encodeCapacity.style.color = 'var(--text-muted)';
 
       updateEncodeButton();
     }).catch(function (err) {
-      showStatus(err.message, 'error');
+      showToast(err.message, 'error');
       encodeImage = null;
       updateEncodeButton();
     });
@@ -185,27 +399,28 @@
 
   function onMessageChanged() {
     hideStatus();
+    updateCharCount();
     updateEncodeButton();
 
     // Update capacity estimate in real-time
     if (encodeImage) {
-      const cap = Steganography.getCapacity(encodeImage.width, encodeImage.height);
-      const encoder = new TextEncoder();
-      const msgLen = encoder.encode(els.messageInput.value).length;
+      var cap = Steganography.getCapacity(encodeImage.width, encodeImage.height);
+      var encoder = new TextEncoder();
+      var msgLen = encoder.encode(els.messageInput.value).length;
       if (msgLen > cap) {
         els.encodeCapacity.textContent =
-          '⚠️ Message too large! ' + msgLen.toLocaleString() + ' bytes needed, ' +
-          cap.toLocaleString() + ' bytes available';
-        els.encodeCapacity.style.color = '#ff5555';
+          '⚠️ 消息过大！需 ' + msgLen.toLocaleString() + ' 字节，仅 ' +
+          cap.toLocaleString() + ' 字节可用';
+        els.encodeCapacity.style.color = 'var(--error)';
       } else if (msgLen > 0) {
         els.encodeCapacity.textContent =
-          'Message: ' + msgLen.toLocaleString() + ' / ' + cap.toLocaleString() + ' bytes';
-        els.encodeCapacity.style.color = '#00ff88';
+          '消息: ' + msgLen.toLocaleString() + ' / ' + cap.toLocaleString() + ' 字节';
+        els.encodeCapacity.style.color = 'var(--success)';
       } else {
-        const cap = Steganography.getCapacity(encodeImage.width, encodeImage.height);
+        var cap2 = Steganography.getCapacity(encodeImage.width, encodeImage.height);
         els.encodeCapacity.textContent =
-          'Image capacity: ' + cap.toLocaleString() + ' bytes';
-        els.encodeCapacity.style.color = '#888';
+          '图像容量: ' + cap2.toLocaleString() + ' 字节';
+        els.encodeCapacity.style.color = 'var(--text-muted)';
       }
     }
   }
@@ -223,43 +438,45 @@
     if (!encodeImage) return;
 
     try {
-      const message = els.messageInput.value;
-      const password = els.passwordInput.value;
+      var message = els.messageInput.value;
+      var password = els.passwordInput.value;
 
       if (!password) {
-        showStatus('Please enter a password for encryption.', 'error');
+        showToast('请输入加密密码。', 'error');
         return;
       }
 
       if (!message.trim()) {
-        showStatus('Please enter a message to hide.', 'error');
+        showToast('请输入要隐藏的消息。', 'error');
         return;
       }
 
-      const result = Steganography.encode(encodeImage, message, password);
+      var result = Steganography.encode(encodeImage, message, password);
 
       // Show result preview
       showPreview(els.encodePreviewCanvas, result.imageData);
 
-      // Download
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      // Auto-download
+      var timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       downloadImageData(result.imageData, 'stego-' + timestamp + '.png');
 
-      showStatus(
-        '✅ Message encoded! ' + result.used.toLocaleString() + ' bytes hidden. Image downloaded.',
+      showToast(
+        '✅ 消息已编码！' + result.used.toLocaleString() + ' 字节已隐藏。图像已下载。',
         'success',
-        8000
+        5000
       );
     } catch (err) {
-      showStatus(err.message, 'error');
+      showToast(err.message, 'error');
     }
   }
 
-  // --- Decode Handlers ---
+  // ====================================================================
+  // Decode Handlers
+  // ====================================================================
 
   function onDecodeImageSelected(e) {
     hideStatus();
-    const file = e.target.files[0];
+    var file = e.target.files[0];
     if (!file) return;
 
     loadImageData(file).then(function (result) {
@@ -267,9 +484,10 @@
       showPreview(els.decodePreviewCanvas, decodeImage);
       els.decodePreview.classList.remove('hidden');
       els.decodeResult.classList.add('hidden');
+      els.copyResult.classList.add('hidden');
       updateDecodeButton();
     }).catch(function (err) {
-      showStatus(err.message, 'error');
+      showToast(err.message, 'error');
       decodeImage = null;
       updateDecodeButton();
     });
@@ -284,30 +502,35 @@
     if (!decodeImage) return;
 
     try {
-      const password = els.passwordInput.value;
+      var password = els.passwordInput.value;
       if (!password) {
-        showStatus('Please enter the password used during encoding.', 'error');
+        showToast('请输入编码时使用的密码。', 'error');
         return;
       }
 
-      const message = Steganography.decode(decodeImage, password);
+      var message = Steganography.decode(decodeImage, password);
 
       els.decodedMessage.textContent = message;
       els.decodeResult.classList.remove('hidden');
-      showStatus('✅ Message decoded successfully!', 'success', 5000);
+      els.copyResult.classList.remove('hidden');
+      showToast('✅ 消息解码成功！', 'success', 5000);
     } catch (err) {
-      showStatus(err.message, 'error');
+      showToast(err.message, 'error');
     }
   }
 
-  // --- Password Changes ---
+  // ====================================================================
+  // Password Changes
+  // ====================================================================
 
   function onPasswordChanged() {
     updateEncodeButton();
     updateDecodeButton();
   }
 
-  // --- Initialization ---
+  // ====================================================================
+  // Initialization
+  // ====================================================================
 
   function init() {
     // Start particle system
@@ -318,8 +541,21 @@
       console.error('Failed to start particle system:', e);
     }
 
-    // Init easter eggs
-    EasterEgg.init();
+    // Initialize theme
+    initTheme();
+
+    // Init easter eggs with particle system reference
+    try {
+      EasterEgg.init(particleSystem);
+    } catch (e) {
+      console.error('Failed to init easter eggs:', e);
+    }
+
+    // Initialize drag & drop
+    initDragDrop();
+
+    // Initialize copy button
+    initCopyButton();
 
     // Tab switching
     els.tabEncode.addEventListener('click', function () { switchTab('encode'); });
@@ -338,6 +574,7 @@
     // Initial button state
     updateEncodeButton();
     updateDecodeButton();
+    updateCharCount();
 
     console.log('VisualStealthLab ready.');
   }

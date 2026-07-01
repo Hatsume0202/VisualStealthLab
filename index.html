@@ -1,55 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VisualStealthLab</title>
+  <title>VisualStealthLab — 视觉隐写实验室</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <!-- Particle canvas (background) -->
   <canvas id="particle-canvas"></canvas>
 
-  <!-- Easter egg overlay (hidden by default) -->
-  <div id="easteregg-overlay" class="hidden">
-    <div id="easteregg-content">
-      <h1 id="easteregg-title"></h1>
-      <p id="easteregg-message"></p>
-    </div>
-  </div>
+  <!-- Theme toggle button -->
+  <button id="theme-toggle" title="切换主题">
+    <span class="theme-icon">&#x1F319;</span>
+  </button>
 
   <!-- Main application container -->
   <div id="app-container">
     <header>
       <h1>VisualStealthLab</h1>
-      <p class="subtitle">LSB Image Steganography</p>
+      <p class="subtitle">LSB 图像隐写工具</p>
     </header>
 
     <main>
       <!-- Mode tabs -->
       <div class="tabs">
-        <button id="tab-encode" class="tab active">Encode</button>
-        <button id="tab-decode" class="tab">Decode</button>
+        <button id="tab-encode" class="tab active">&#x1F512; 隐藏信息</button>
+        <button id="tab-decode" class="tab">&#x1F513; 提取信息</button>
       </div>
 
       <!-- Shared password field -->
       <div class="form-group">
-        <label for="password-input">Password:</label>
-        <input type="password" id="password-input" placeholder="Enter encryption key">
+        <label for="password-input">密码 / Password:</label>
+        <input type="password" id="password-input" placeholder="输入加密密钥 / Enter encryption key">
       </div>
 
       <!-- Encode panel -->
       <div id="encode-panel" class="panel active">
-        <div class="form-group">
-          <label for="encode-image-input">Cover Image:</label>
+        <div class="form-group drop-zone" data-drop-target="encode-image-input">
+          <label for="encode-image-input">载体图像 / Cover Image:</label>
           <input type="file" id="encode-image-input" accept="image/png,image/jpeg,image/bmp">
         </div>
         <div class="form-group">
-          <label for="message-input">Secret Message:</label>
-          <textarea id="message-input" placeholder="Enter the message to hide..." rows="4"></textarea>
+          <label for="message-input">秘密消息 / Secret Message:</label>
+          <textarea id="message-input" placeholder="输入要隐藏的消息..." rows="4"></textarea>
+          <span id="char-count" class="char-count">0 字符</span>
           <p id="encode-capacity" class="hint"></p>
         </div>
-        <button id="encode-button" disabled>Encode & Download</button>
+        <button id="encode-button" disabled>&#x1F4E5; 编码并下载 / Encode &amp; Download</button>
         <div id="encode-preview" class="preview hidden">
           <canvas id="encode-preview-canvas"></canvas>
         </div>
@@ -57,14 +55,15 @@
 
       <!-- Decode panel -->
       <div id="decode-panel" class="panel">
-        <div class="form-group">
-          <label for="decode-image-input">Stego Image:</label>
+        <div class="form-group drop-zone" data-drop-target="decode-image-input">
+          <label for="decode-image-input">隐写图像 / Stego Image:</label>
           <input type="file" id="decode-image-input" accept="image/png,image/bmp">
         </div>
-        <button id="decode-button" disabled>Decode</button>
+        <button id="decode-button" disabled>&#x1F50D; 解码 / Decode</button>
         <div id="decode-result" class="result hidden">
-          <h3>Decoded Message:</h3>
+          <h3>解码结果 / Decoded Message:</h3>
           <pre id="decoded-message"></pre>
+          <button id="copy-result" class="hidden copy-btn">&#x1F4CB; 复制</button>
         </div>
         <div id="decode-preview" class="preview hidden">
           <canvas id="decode-preview-canvas"></canvas>
@@ -76,9 +75,12 @@
     </main>
 
     <footer>
-      <p>VisualStealthLab — LSB Steganography Tool</p>
+      <p>VisualStealthLab — LSB 图像隐写工具</p>
     </footer>
   </div>
+
+  <!-- Toast notification container -->
+  <div id="toast-container"></div>
 
   <!-- Scripts loaded in dependency order -->
   <script src="js/particles.js"></script>
