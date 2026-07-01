@@ -1,0 +1,268 @@
+/* === Reset & Base === */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #0a0a0f;
+  color: #e0e0e0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* === Particle Canvas (full-screen background) === */
+#particle-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* === Easter Egg Overlay === */
+#easteregg-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+#easteregg-overlay.hidden {
+  display: none;
+}
+
+#easteregg-content {
+  text-align: center;
+  animation: easteregg-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes easteregg-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+
+#easteregg-title {
+  font-size: 3rem;
+  color: #00ff88;
+  text-shadow: 0 0 20px #00ff88;
+}
+
+#easteregg-message {
+  font-size: 1.5rem;
+  color: #ffcc00;
+  margin-top: 1rem;
+}
+
+/* === App Container === */
+#app-container {
+  position: relative;
+  z-index: 1;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* === Header === */
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  font-size: 2.2rem;
+  color: #00ff88;
+  text-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  color: #888;
+  font-size: 0.95rem;
+  margin-top: 0.3rem;
+}
+
+/* === Tabs === */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: #1a1a2e;
+  color: #aaa;
+  border: 1px solid #333;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+.tab.active {
+  background: #00ff88;
+  color: #0a0a0f;
+  border-color: #00ff88;
+  font-weight: bold;
+}
+
+/* === Form Elements === */
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  color: #aaa;
+  font-weight: 600;
+}
+
+.form-group input[type="file"],
+.form-group input[type="password"],
+.form-group textarea {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.form-group textarea {
+  resize: vertical;
+}
+
+.form-group input[type="file"]::file-selector-button {
+  background: #2a2a4a;
+  color: #e0e0e0;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.3rem;
+}
+
+/* === Panels === */
+.panel {
+  display: none;
+}
+
+.panel.active {
+  display: block;
+}
+
+/* === Buttons === */
+button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#encode-button,
+#decode-button {
+  width: 100%;
+  background: #00ff88;
+  color: #0a0a0f;
+  margin-top: 0.5rem;
+}
+
+#encode-button:hover:not(:disabled),
+#decode-button:hover:not(:disabled) {
+  background: #00cc6a;
+}
+
+/* === Preview & Result === */
+.preview canvas {
+  max-width: 100%;
+  border-radius: 6px;
+  margin-top: 1rem;
+  border: 1px solid #333;
+}
+
+.result {
+  margin-top: 1rem;
+}
+
+.result h3 {
+  color: #00ff88;
+  margin-bottom: 0.5rem;
+}
+
+.result pre {
+  background: #1a1a2e;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid #333;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* === Status / Error === */
+.status {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.status.error {
+  background: rgba(255, 50, 50, 0.15);
+  color: #ff5555;
+  border: 1px solid #ff5555;
+}
+
+.status.success {
+  background: rgba(0, 255, 136, 0.1);
+  color: #00ff88;
+  border: 1px solid #00ff88;
+}
+
+.status.hidden {
+  display: none;
+}
+
+/* === Footer === */
+footer {
+  text-align: center;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #222;
+  color: #555;
+  font-size: 0.8rem;
+}
